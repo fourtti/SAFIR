@@ -1,2 +1,9 @@
-#exclude .idea file
+#exclude Idea folder
+*.iml
+*.ipr
+*.iws
 .idea
+out
+# Scala specific folders
+target
+*.class
