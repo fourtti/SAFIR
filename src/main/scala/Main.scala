@@ -86,7 +86,7 @@ object Main extends App{
     blue/list.length
   }
 
-  def ImageToChunks(img: BufferedImage,rows:Int, cols:Int): Array[BufferedImage] = {
+  def imageToChunks(img: BufferedImage,rows:Int, cols:Int): Array[BufferedImage] = {
     //total amount of chunks. Determines the size of the array returned
     val chunkCount = rows * cols
     //width and height of each chunk
