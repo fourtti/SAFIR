@@ -1,21 +1,25 @@
 import java.io.File
 import javax.imageio.ImageIO
 import java.awt.image.BufferedImage
+import java.awt.Image
 
 
 
 
 
 object Main extends App{
-  val photo1 = ImageIO.read(new File("image5.jpg"))
-  val photo2 = makeSmaller(photo1)
+  println("Starting work")
+  //val photo1 = ImageIO.read(new File("image5.jpg"))
+  //val photo2 = makeSmaller(photo1)
   //val photo1 = ImageIO.read(new File("image.jpg"))
   //val photo2 = phototest(photo1)
+  val photo1 = ImageIO.read(new File("image5.jpg"))
+  val photo2 = resize(photo1)
 
 
-  ImageIO.write(photo2,"jpg", new File("smallerImage5.jpg"))
+  ImageIO.write(photo2,"jpg", new File("smallerImage0.jpg"))
 
-  def makeSmaller(img: BufferedImage): BufferedImage = {
+  def makeSmaller(img: BufferedImage,times: Int): BufferedImage = {
     val w = img.getWidth()
     val h = img.getHeight()
 
@@ -27,6 +31,7 @@ object Main extends App{
     var counter = 0
     for(x <- 0 until w/2){
       for(y <- 0 until h/2) {
+
 
         val red = getRed(List(img.getRGB(x*2,y*2),img.getRGB(x*2+1,y*2), img.getRGB(x*2,y*2+1), img.getRGB(x*2+1,y*2+1)))
         val green = getGreen(List(img.getRGB(x*2,y*2),img.getRGB(x*2+1,y*2), img.getRGB(x*2,y*2+1), img.getRGB(x*2+1,y*2+1)))
@@ -47,6 +52,14 @@ object Main extends App{
 
     outputImg
   }
+
+  def resize(img: BufferedImage) = {
+    val resized =  img.getScaledInstance(img.getWidth()/2, img.getHeight()/2,Image.SCALE_DEFAULT)
+    val bufferedImage = new BufferedImage(img.getWidth()/2, img.getHeight()/2, BufferedImage.TYPE_INT_RGB)
+    bufferedImage.getGraphics.drawImage(resized, 0, 0, null)
+    bufferedImage
+  }
+
 
   def getRed(list:List[Int]): Int ={
     var red = 0
