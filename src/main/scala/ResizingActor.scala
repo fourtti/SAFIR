@@ -1,18 +1,18 @@
 import java.awt.image.BufferedImage
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, Props}
 
 object ResizingActor {
 
   case class returningImage(bufferedImage: BufferedImage, position: Int)
   case class startResizing(bufferedImage: BufferedImage, position: Int)
+  case class lastResize(bufferedImage: BufferedImage, position: Int)
 }
 
 
 class ResizingActor(imageAmount: Int) extends Actor {
   import ResizingActor._
-  import ImageActor._
-  import Main._
+
 
   var chunkCount = 0
   val returningImageArray = new Array[BufferedImage](imageAmount)
@@ -22,10 +22,12 @@ class ResizingActor(imageAmount: Int) extends Actor {
   override def receive: Receive = {
 
     case startResizing(img,pos) => {
+      //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
       actorPosition = pos
-      if(img.getHeight() == 4 || img.getWidth() == 4) {
-
-
+      if(img.getHeight() <= 4 || img.getWidth() <= 4) {
+        println(s"Sent to Last Actor")
+        val PartialImageActor = context.actorOf(Props(new EndActor))
+        PartialImageActor ! startResizing(img,pos)
 
       } else {
         val images = imageToChunks(img,2,2)
@@ -37,18 +39,22 @@ class ResizingActor(imageAmount: Int) extends Actor {
       }
     }
 
-
     case returningImage(img,pos) => {
       counter+=1
       returningImageArray(pos) = img
 
-
       if (counter == imageAmount) {
-
+        println(s"got $counter messages back. Creating Larger picture")
         val buildImage = buildImageFromChunks(returningImageArray)
         context.parent ! returningImage(buildImage,actorPosition)
+        println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
     }
+    case lastResize(img,pos) => {
+
+      context.parent ! returningImage(img,pos)
+    }
+
   }
   def imageToChunks(img: BufferedImage, rows: Int, cols: Int): Array[BufferedImage] = {
     //total amount of chunks. Determines the size of the array returned
@@ -84,8 +90,8 @@ class ResizingActor(imageAmount: Int) extends Actor {
     val w = arr(1).getWidth()
     val outputImg = new BufferedImage(w*2,h*2,BufferedImage.TYPE_INT_RGB)
     var counter = 0
-    for (x: Int <- 0 until Math.sqrt(arr.length)) {
-      for (y: Int <- 0 until Math.sqrt(arr.length)) {
+    for (x: Int <- 0 until Math.sqrt(arr.length).toInt) {
+      for (y: Int <- 0 until Math.sqrt(arr.length).toInt) {
         outputImg.getGraphics.drawImage(arr(counter), x*w, y*h, null)
         counter+=1
       }
