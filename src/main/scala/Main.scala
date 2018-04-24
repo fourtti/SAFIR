@@ -27,7 +27,7 @@ object Main extends App{
 
   val images = imageToChunks(photo1,2,2)
   import MainActor._
-  for (i <- 0 until images.length) {
+  for (i <- images.indices) {
     val MainImageActor = system.actorOf(Props[ MainActor ], s"MainImage_$i")
     MainImageActor ! startResizing(images(i),i)
   }
@@ -35,33 +35,6 @@ object Main extends App{
 
 
   ImageIO.write(photo2,"jpg", new File("smallerImage.jpg"))
-
-
-
-
-  def makeSmaller(img: BufferedImage,times: Int): BufferedImage = {
-    val w = img.getWidth()
-    val h = img.getHeight()
-
-    BufferedImage.TYPE_INT_RGB
-    //create new image that is 0.5 the size
-    val outputImg = new BufferedImage(w/2,h/2,BufferedImage.TYPE_INT_RGB)
-    val colorArray = new Array[Int]((w/2)*(h/2))
-
-    var counter = 0
-
-
-    counter = 0
-    for(x <- 0 until w/2){
-      for(y <- 0 until h/2){
-        outputImg.setRGB(x,y,colorArray(counter)& 0xffffff)
-        counter += 1
-      }
-    }
-
-    outputImg
-  }
-
 
   def resize(img: BufferedImage) = {
     val resized =  img.getScaledInstance(img.getWidth()/2, img.getHeight()/2,Image.SCALE_DEFAULT)
