@@ -21,7 +21,7 @@ class ResizingActor(imageAmount: Int) extends Actor {
 
   override def receive: Receive = {
 
-    case startResizing(img,pos) => {
+    case startResizing(img,pos) =>
       //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
       actorPosition = pos
       if(img.getHeight() <= 4 || img.getWidth() <= 4) {
@@ -32,14 +32,13 @@ class ResizingActor(imageAmount: Int) extends Actor {
       } else {
         val images = imageToChunks(img,2,2)
 
-        for (i <- 0 until images.length) {
+        for (i <- images.indices) {
           val PartialImageActor = context.actorOf(Props(new ResizingActor(chunkCount)), s"MainImage_$i")
           PartialImageActor ! startResizing(images(i),i)
         }
       }
-    }
 
-    case returningImage(img,pos) => {
+    case returningImage(img,pos) =>
       counter+=1
       returningImageArray(pos) = img
 
@@ -49,11 +48,7 @@ class ResizingActor(imageAmount: Int) extends Actor {
         context.parent ! returningImage(buildImage,actorPosition)
         println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
-    }
-    case lastResize(img,pos) => {
-
-      context.parent ! returningImage(img,pos)
-    }
+    case lastResize(img,pos) => context.parent ! returningImage(img,pos)
 
   }
   def imageToChunks(img: BufferedImage, rows: Int, cols: Int): Array[BufferedImage] = {
@@ -92,7 +87,7 @@ class ResizingActor(imageAmount: Int) extends Actor {
     var counter = 0
     for (x: Int <- 0 until Math.sqrt(arr.length).toInt) {
       for (y: Int <- 0 until Math.sqrt(arr.length).toInt) {
-        outputImg.getGraphics.drawImage(arr(counter), x*w, y*h, null)
+        outputImg.getGraphics.drawImage(arr(counter), y*w, x*h, null)
         counter+=1
       }
     }
