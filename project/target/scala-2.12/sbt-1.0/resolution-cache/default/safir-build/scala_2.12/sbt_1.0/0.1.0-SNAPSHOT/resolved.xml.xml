@@ -4,7 +4,11 @@
 		module="safir-build"
 		revision="0.1.0-SNAPSHOT"
 		status="integration"
+<<<<<<< HEAD
 		publication="20180423143201"
+=======
+		publication="20180424111233"
+>>>>>>> e8131c4390dcc7c07ec48b6b27010fdeabb3d578
 		e:sbtVersion="1.0" e:scalaVersion="2.12"
 	>
 		<description>

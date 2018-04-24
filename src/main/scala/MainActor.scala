@@ -2,15 +2,21 @@ import java.awt.image.BufferedImage
 import akka.actor.{Actor, Props}
 
 object MainActor {
-  case class PartialImageResize(bufferedImage: BufferedImage)
+
   case class returnRGB(rgb: Int, position: Int)
+  case class startResizing(bufferedImage: BufferedImage, position: Int)
 }
 
 
 class MainActor extends Actor {
   import MainActor._
   import ImageActor._
+  import Main._
   override def receive: Receive = {
+
+    case startResizing(img,pos) => {
+
+    }
 
     case PartialImageResize(img) => {
       val h = img.getHeight()
