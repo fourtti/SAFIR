@@ -1,7 +1,8 @@
 import java.io.File
+
 import javax.imageio.ImageIO
 import java.awt.image.BufferedImage
-import java.awt.Image
+import java.awt.{Graphics2D, Image}
 
 
 
@@ -23,7 +24,7 @@ object Main extends App{
     val w = img.getWidth()
     val h = img.getHeight()
 
-
+    BufferedImage.TYPE_INT_RGB
     //create new image that is 0.5 the size
     val outputImg = new BufferedImage(w/2,h/2,BufferedImage.TYPE_INT_RGB)
     val colorArray = new Array[Int]((w/2)*(h/2))
@@ -83,6 +84,34 @@ object Main extends App{
       blue += (i & 0xff)
     }
     blue/list.length
+  }
+
+  def ImageToChunks(img: BufferedImage,rows:Int, cols:Int): Array[BufferedImage] = {
+    //total amount of chunks. Determines the size of the array returned
+    val chunkCount = rows * cols
+    //width and height of each chunk
+    val chunkWidth = img.getWidth() / cols
+    val chunkHeight = img.getHeight() / rows
+    val chunkArray = new Array[BufferedImage](chunkCount)
+
+    //counter for inputing chunks to the array
+    var counter = 0
+    for(x <- 0 until rows){
+      for(y <- 0 until cols){
+
+        // intitialize new imagechunks in array
+        chunkArray(counter) = new BufferedImage(chunkWidth,chunkHeight,BufferedImage.TYPE_INT_RGB)
+
+        //draw the image to the imagechunk
+        val graphics = chunkArray(counter).createGraphics()
+        graphics.drawImage(img,0,0,chunkWidth,chunkHeight,chunkWidth*y,chunkHeight*x,chunkWidth * y + chunkWidth, chunkHeight * x + chunkHeight,null)
+        graphics.dispose()
+
+        //adding to counter
+        counter += 1
+      }
+    }
+    chunkArray
   }
 
 }
