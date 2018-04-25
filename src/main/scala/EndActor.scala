@@ -15,7 +15,7 @@ class EndActor extends Actor{
       sender ! lastResize(bufferedImage,num)
       //println(s"EndActor sent image back. size ${bufferedImage.getWidth} * ${bufferedImage.getHeight}")
     }
-      
+
   }
 
 }
