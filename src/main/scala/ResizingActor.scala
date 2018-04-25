@@ -21,39 +21,41 @@ class ResizingActor(imageAmount: Int) extends Actor {
 
   override def receive: Receive = {
 
-    case startResizing(img,pos) => {
+    case startResizing(img,pos) =>
       //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
       actorPosition = pos
+
+      // if the image given to this function is right size, send to EndActor
       if(img.getHeight() <= 4 || img.getWidth() <= 4) {
         println(s"Sent to Last Actor")
         val PartialImageActor = context.actorOf(Props(new EndActor))
         PartialImageActor ! startResizing(img,pos)
 
+        // otherwise divide the image and send it to new same kind of actor
       } else {
         val images = imageToChunks(img,2,2)
 
-        for (i <- 0 until images.length) {
+        for (i <- images.indices) {
           val PartialImageActor = context.actorOf(Props(new ResizingActor(chunkCount)), s"MainImage_$i")
           PartialImageActor ! startResizing(images(i),i)
         }
       }
-    }
 
-    case returningImage(img,pos) => {
+    case returningImage(img,pos) =>
+      //adding one to counter for returning image
       counter+=1
       returningImageArray(pos) = img
 
+      //when counter reaches on how many images one image was divided
       if (counter == imageAmount) {
         println(s"got $counter messages back. Creating Larger picture")
+
+        //we build images back to one larger image
         val buildImage = buildImageFromChunks(returningImageArray)
         context.parent ! returningImage(buildImage,actorPosition)
         println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
-    }
-    case lastResize(img,pos) => {
-
-      context.parent ! returningImage(img,pos)
-    }
+    case lastResize(img,pos) => context.parent ! returningImage(img,pos)
 
   }
   def imageToChunks(img: BufferedImage, rows: Int, cols: Int): Array[BufferedImage] = {
@@ -92,7 +94,7 @@ class ResizingActor(imageAmount: Int) extends Actor {
     var counter = 0
     for (x: Int <- 0 until Math.sqrt(arr.length).toInt) {
       for (y: Int <- 0 until Math.sqrt(arr.length).toInt) {
-        outputImg.getGraphics.drawImage(arr(counter), x*w, y*h, null)
+        outputImg.getGraphics.drawImage(arr(counter), y*w, x*h, null)
         counter+=1
       }
     }

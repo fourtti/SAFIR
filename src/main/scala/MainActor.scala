@@ -20,7 +20,7 @@ class MainActor(imageAmount: Int) extends Actor {
 
   override def receive: Receive = {
 
-    case initialSplit(img) => {
+    case initialSplit(img) =>
       println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
       val images = imageToChunks(img, 2, 2)
@@ -29,8 +29,8 @@ class MainActor(imageAmount: Int) extends Actor {
         val PartialImageActor = context.actorOf(Props(new ResizingActor(chunkCount)), s"MainImage_$i")
         PartialImageActor ! startResizing(images(i),i)
       }
-    }
-    case returningImage(img, pos) => {
+
+    case returningImage(img, pos) =>
       println("got last stuff back")
       counter += 1
       returningImageArray(pos) = img
@@ -41,7 +41,7 @@ class MainActor(imageAmount: Int) extends Actor {
         val buildImage = buildImageFromChunks(returningImageArray)
         ImageIO.write(buildImage,"jpg", new File("smallerImage.jpg"))
       }
-    }
+
   }
 
   def imageToChunks(img: BufferedImage, rows: Int, cols: Int): Array[BufferedImage] = {
@@ -81,7 +81,7 @@ class MainActor(imageAmount: Int) extends Actor {
     var counter = 0
     for (x: Int <- 0 until Math.sqrt(arr.length).toInt) {
       for (y: Int <- 0 until Math.sqrt(arr.length).toInt) {
-        outputImg.getGraphics.drawImage(arr(counter), x*w, y*h, null)
+        outputImg.getGraphics.drawImage(arr(counter), y*w, x*h, null)
         counter+=1
       }
     }
