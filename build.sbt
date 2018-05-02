@@ -1,3 +1,4 @@
+
 name := "SAFIR"
 
 version := "0.1"
@@ -10,4 +11,6 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "3.0.5"
 )
 
+mainClass in assembly := Some("Main")
 
+assemblyJarName in assembly := "safir.jar"

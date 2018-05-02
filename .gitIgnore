@@ -6,5 +6,5 @@
 .idea
 out
 # Scala specific folders
-target
+target/
 *.class

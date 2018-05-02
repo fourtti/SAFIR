@@ -21,7 +21,7 @@ class MainActor(imageAmount: Int) extends Actor {
   override def receive: Receive = {
 
     case initialSplit(img) =>
-      println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
+      //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
       val images = imageToChunks(img, 2, 2)
 
@@ -31,15 +31,16 @@ class MainActor(imageAmount: Int) extends Actor {
       }
 
     case returningImage(img, pos) =>
-      println("got last stuff back")
+      //println("got last stuff back")
       counter += 1
       returningImageArray(pos) = img
 
 
       if (counter == imageAmount) {
-        println("got last counter back")
+        //println("got last counter back")
         val buildImage = buildImageFromChunks(returningImageArray)
         ImageIO.write(buildImage,"jpg", new File("smallerImage.jpg"))
+        println("The work is done")
       }
 
   }
