@@ -1,7 +1,9 @@
 import java.awt.image.BufferedImage
 import java.io.File
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import akka.cluster.routing.{ClusterRouterPool, ClusterRouterPoolSettings}
+import akka.routing.RoundRobinPool
 import javax.imageio.ImageIO
 
 
@@ -14,8 +16,18 @@ class MainActor(imageAmount: Int) extends Actor {
   import MainActor._
   import ResizingActor._
 
-  var chunkCount = 0
-  var counter = 0
+  val router:ActorRef = context.system.actorOf(ClusterRouterPool(
+    local = RoundRobinPool(4),  //type of router and the amount of actors created at the start
+    settings = ClusterRouterPoolSettings(
+      totalInstances = 15,      //maximum ammunt of actors created, not sure where it creates them though
+      maxInstancesPerNode = 1,  //how many actors are created per node in cluster
+      allowLocalRoutees = false //allow actors to be created in the node the router lies in. In this case the Master node
+    )
+  ).props(Props[ResizingActor]), //the type of the actors, that are created
+    name = "master-router")
+
+  //var chunkCount = 0
+  var counter = 0 //counts how many pictures have been returned from the router
   val returningImageArray = new Array[BufferedImage](imageAmount)
 
   override def receive: Receive = {
@@ -26,8 +38,8 @@ class MainActor(imageAmount: Int) extends Actor {
       val images = imageToChunks(img, 2, 2)
 
       for (i <- images.indices) {
-        val PartialImageActor = context.actorOf(Props(new ResizingActor(chunkCount)), s"MainImage_$i")
-        PartialImageActor ! startResizing(images(i),i)
+        router ! startResizing(images(i),i)
+
       }
 
     case returningImage(img, pos) =>
@@ -45,10 +57,8 @@ class MainActor(imageAmount: Int) extends Actor {
   }
 
   def imageToChunks(img: BufferedImage, rows: Int, cols: Int): Array[BufferedImage] = {
-
-
     //total amount of chunks. Determines the size of the array returned
-    chunkCount = rows * cols
+    val chunkCount = rows * cols
     //width and height of each chunk
     val chunkWidth = img.getWidth() / cols
     val chunkHeight = img.getHeight() / rows
