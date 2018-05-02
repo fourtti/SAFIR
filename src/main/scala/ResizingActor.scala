@@ -6,6 +6,7 @@ object ResizingActor {
 
   case class returningImage(bufferedImage: BufferedImage, position: Int)
   case class startResizing(bufferedImage: BufferedImage, position: Int)
+  case class startResizingOdd(bufferedImage: BufferedImage, position: Int)
   case class lastResize(bufferedImage: BufferedImage, position: Int)
 }
 
@@ -26,13 +27,19 @@ class ResizingActor(imageAmount: Int) extends Actor {
       actorPosition = pos
 
       // if the image given to this function is right size, send to EndActor
-      if(img.getHeight() <= 4 || img.getWidth() <= 4) {
-        println(s"Sent to Last Actor")
+      if(img.getHeight() <= 16 || img.getWidth() <= 16) {
+        //println(s"Sent to Last Actor")
         val PartialImageActor = context.actorOf(Props(new EndActor))
-        PartialImageActor ! startResizing(img,pos)
+        PartialImageActor ! startResizing(img, pos)
 
         // otherwise divide the image and send it to new same kind of actor
-      } else {
+        /**
+          * }else if (img.getHeight() < 8 || img.getWidth() < 8) {
+          * val PartialImageActor = context.actorOf(Props(new EndActor))
+          * PartialImageActor ! startResizing(img, pos)
+          * }
+          **/
+      }else {
         val images = imageToChunks(img,2,2)
 
         for (i <- images.indices) {
@@ -48,12 +55,12 @@ class ResizingActor(imageAmount: Int) extends Actor {
 
       //when counter reaches on how many images one image was divided
       if (counter == imageAmount) {
-        println(s"got $counter messages back. Creating Larger picture")
+        //println(s"got $counter messages back. Creating Larger picture")
 
         //we build images back to one larger image
         val buildImage = buildImageFromChunks(returningImageArray)
         context.parent ! returningImage(buildImage,actorPosition)
-        println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
+        //println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
     case lastResize(img,pos) => context.parent ! returningImage(img,pos)
 
