@@ -1,20 +1,20 @@
 import java.awt.image.BufferedImage
-
+import ImageByteConverter._
 import akka.actor.{Actor, Props}
 
 object ResizingActor {
 
-  case class returningImage(bufferedImage: BufferedImage, position: Int)
-  case class startResizing(bufferedImage: BufferedImage, position: Int)
-  case class startResizingOdd(bufferedImage: BufferedImage, position: Int)
-  case class lastResize(bufferedImage: BufferedImage, position: Int)
+  case class returningImage(byteImage: Array[Byte], position: Int)
+  case class startResizing(byteImage: Array[Byte], position: Int)
+  //case class startResizingOdd(bufferedImage: BufferedImage, position: Int)
+  case class lastResize(byteImage: Array[Byte], position: Int)
 }
 
 
-class ResizingActor(imageAmount: Int) extends Actor {
+class ResizingActor(val imageAmount: Int) extends Actor {
   import ResizingActor._
 
-
+  println("Resizing actor created!")
   var chunkCount = 0
   val returningImageArray = new Array[BufferedImage](imageAmount)
   var counter = 0
@@ -22,15 +22,18 @@ class ResizingActor(imageAmount: Int) extends Actor {
 
   override def receive: Receive = {
 
-    case startResizing(img,pos) =>
-      //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
+    case startResizing(byteImg,pos) =>
+      //converting back to BufferedImage
+      val img = convertToBufferedImage(byteImg)
+
+      println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
       actorPosition = pos
 
       // if the image given to this function is right size, send to EndActor
       if(img.getHeight() <= 16 || img.getWidth() <= 16) {
         //println(s"Sent to Last Actor")
-        val PartialImageActor = context.actorOf(Props(new EndActor))
-        PartialImageActor ! startResizing(img, pos)
+        val PartialImageActor = context.actorOf(Props[EndActor])
+        PartialImageActor ! startResizing(convertBufferToByteArray(img), pos)
 
         // otherwise divide the image and send it to new same kind of actor
         /**
@@ -43,12 +46,14 @@ class ResizingActor(imageAmount: Int) extends Actor {
         val images = imageToChunks(img,2,2)
 
         for (i <- images.indices) {
-          val PartialImageActor = context.actorOf(Props(new ResizingActor(chunkCount)), s"MainImage_$i")
-          PartialImageActor ! startResizing(images(i),i)
+          val PartialImageActor = context.actorOf(Props(new ResizingActor(4)), s"MainImage_$i")
+          PartialImageActor ! startResizing(convertBufferToByteArray(images(i)),i)
         }
       }
 
-    case returningImage(img,pos) =>
+    case returningImage(byteImg,pos) =>
+      val img = convertToBufferedImage(byteImg)
+
       //adding one to counter for returning image
       counter+=1
       returningImageArray(pos) = img
@@ -59,7 +64,7 @@ class ResizingActor(imageAmount: Int) extends Actor {
 
         //we build images back to one larger image
         val buildImage = buildImageFromChunks(returningImageArray)
-        context.parent ! returningImage(buildImage,actorPosition)
+        context.parent ! returningImage(convertBufferToByteArray(buildImage),actorPosition)
         //println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
     case lastResize(img,pos) => context.parent ! returningImage(img,pos)

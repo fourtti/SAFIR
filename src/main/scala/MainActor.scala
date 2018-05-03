@@ -1,6 +1,6 @@
 import java.awt.image.BufferedImage
-import java.io.File
-
+import java.io.{ByteArrayInputStream, File}
+import ImageByteConverter._
 import akka.actor.{Actor, ActorRef, Props}
 import akka.cluster.routing.{ClusterRouterPool, ClusterRouterPoolSettings}
 import akka.routing.RoundRobinPool
@@ -8,7 +8,7 @@ import javax.imageio.ImageIO
 
 
 object MainActor {
-    case class initialSplit(bufferedImage: BufferedImage)
+    case class initialSplit(byteImage: Array[Byte])
 }
 
 class MainActor(imageAmount: Int) extends Actor {
@@ -16,40 +16,40 @@ class MainActor(imageAmount: Int) extends Actor {
   import MainActor._
   import ResizingActor._
 
-  val router:ActorRef = context.system.actorOf(ClusterRouterPool(
-    local = RoundRobinPool(4),  //type of router and the amount of actors created at the start
+  println("xXx(SNIPORRZZZ)Lets see if this is before the errors(SNIPORRZZZ)xXx")
+  var router:ActorRef = context.system.actorOf(ClusterRouterPool(
+    local = RoundRobinPool(2),  //type of router and the amount of actors created at the start
     settings = ClusterRouterPoolSettings(
-      totalInstances = 15,      //maximum ammunt of actors created, not sure where it creates them though
+      totalInstances = 15,      //maximum amount of actors created, not sure where it creates them though
       maxInstancesPerNode = 1,  //how many actors are created per node in cluster
       allowLocalRoutees = false //allow actors to be created in the node the router lies in. In this case the Master node
     )
-  ).props(Props[ResizingActor]), //the type of the actors, that are created
+  ).props(Props(new ResizingActor(4))), //the type of the actors, that are created
     name = "master-router")
-
+  Thread.sleep(2000)
+  println("This Should be after the errors!!!!!!!!111!!!!")
   //var chunkCount = 0
   var counter = 0 //counts how many pictures have been returned from the router
-  val returningImageArray = new Array[BufferedImage](imageAmount)
+  val returningImageArray = new Array[BufferedImage](imageAmount) // the images returned the router are stored here before they are constructed.
 
   override def receive: Receive = {
+    case initialSplit(byteImg) =>
+      //converting image from ByteArray back to Buffered Image
+      val img = convertToBufferedImage(byteImg)
 
-    case initialSplit(img) =>
-      //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
+      println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
       val images = imageToChunks(img, 2, 2)
 
       for (i <- images.indices) {
-        router ! startResizing(images(i),i)
-
+        router ! startResizing(convertBufferToByteArray(images(i)),i)
       }
 
-    case returningImage(img, pos) =>
-      //println("got last stuff back")
+    case returningImage(byteImg, pos) =>
+      val img = convertToBufferedImage(byteImg)
       counter += 1
       returningImageArray(pos) = img
-
-
-      if (counter == imageAmount) {
-        //println("got last counter back")
+      if (counter == imageAmount) { //if all images have been returned, construct image and save it to the project folder
         val buildImage = buildImageFromChunks(returningImageArray)
         ImageIO.write(buildImage,"jpg", new File("smallerImage.jpg"))
         println("The work is done")
@@ -98,4 +98,6 @@ class MainActor(imageAmount: Int) extends Actor {
     }
     outputImg
   }
+
+
 }
