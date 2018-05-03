@@ -43,7 +43,7 @@ object Main extends App{
       val photo1 = ImageIO.read(new File("image.jpg"))
 
       //Wait a little time so that the router can create the routees
-      Thread.sleep(3000)
+      Thread.sleep(1000)
 
 
       //sending image(converted to ByteArray) to mainActor for resizing

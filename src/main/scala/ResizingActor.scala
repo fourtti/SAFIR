@@ -1,6 +1,7 @@
 import java.awt.image.BufferedImage
+
 import ImageByteConverter._
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 
 object ResizingActor {
 
@@ -14,11 +15,11 @@ object ResizingActor {
 class ResizingActor(val imageAmount: Int) extends Actor {
   import ResizingActor._
 
-  println("Resizing actor created!")
   var chunkCount = 0
   val returningImageArray = new Array[BufferedImage](imageAmount)
   var counter = 0
   var actorPosition = 0
+  var whoSentOrder:ActorRef = null
 
   override def receive: Receive = {
 
@@ -26,11 +27,14 @@ class ResizingActor(val imageAmount: Int) extends Actor {
       //converting back to BufferedImage
       val img = convertToBufferedImage(byteImg)
 
-      println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
+      //setting whoSentOrder
+      whoSentOrder = sender
+
+      //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
       actorPosition = pos
 
       // if the image given to this function is right size, send to EndActor
-      if(img.getHeight() <= 16 || img.getWidth() <= 16) {
+      if(img.getHeight() <= 32 || img.getWidth() <= 32) {
         //println(s"Sent to Last Actor")
         val PartialImageActor = context.actorOf(Props[EndActor])
         PartialImageActor ! startResizing(convertBufferToByteArray(img), pos)
@@ -64,8 +68,9 @@ class ResizingActor(val imageAmount: Int) extends Actor {
 
         //we build images back to one larger image
         val buildImage = buildImageFromChunks(returningImageArray)
-        context.parent ! returningImage(convertBufferToByteArray(buildImage),actorPosition)
-        //println(s"sent image to parent actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
+
+        whoSentOrder ! returningImage(convertBufferToByteArray(buildImage),actorPosition)
+        println(s"sent image to ${whoSentOrder} actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
     case lastResize(img,pos) => context.parent ! returningImage(img,pos)
 

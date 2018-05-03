@@ -26,8 +26,6 @@ class MainActor(imageAmount: Int) extends Actor {
     )
   ).props(Props(new ResizingActor(4))), //the type of the actors, that are created
     name = "master-router")
-  Thread.sleep(2000)
-  println("This Should be after the errors!!!!!!!!111!!!!")
   //var chunkCount = 0
   var counter = 0 //counts how many pictures have been returned from the router
   val returningImageArray = new Array[BufferedImage](imageAmount) // the images returned the router are stored here before they are constructed.
@@ -46,6 +44,7 @@ class MainActor(imageAmount: Int) extends Actor {
       }
 
     case returningImage(byteImg, pos) =>
+      println("HEY DUDE! I GOT SOMETHING!!!!")
       val img = convertToBufferedImage(byteImg)
       counter += 1
       returningImageArray(pos) = img
