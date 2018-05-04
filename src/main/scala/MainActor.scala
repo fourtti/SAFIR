@@ -35,7 +35,7 @@ class MainActor(imageAmount: Int) extends Actor {
       //converting image from ByteArray back to Buffered Image
       val img = convertToBufferedImage(byteImg)
 
-      println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
+      //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
       val images = imageToChunks(img, 2, 2)
 

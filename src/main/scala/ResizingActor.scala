@@ -34,7 +34,7 @@ class ResizingActor(val imageAmount: Int) extends Actor {
       actorPosition = pos
 
       // if the image given to this function is right size, send to EndActor
-      if(img.getHeight() <= 32 || img.getWidth() <= 32) {
+      if(img.getHeight() <= 64 || img.getWidth() <= 64) {
         //println(s"Sent to Last Actor")
         val PartialImageActor = context.actorOf(Props[EndActor])
         PartialImageActor ! startResizing(convertBufferToByteArray(img), pos)
@@ -70,7 +70,7 @@ class ResizingActor(val imageAmount: Int) extends Actor {
         val buildImage = buildImageFromChunks(returningImageArray)
 
         whoSentOrder ! returningImage(convertBufferToByteArray(buildImage),actorPosition)
-        println(s"sent image to ${whoSentOrder} actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
+        //println(s"sent image to ${whoSentOrder} actor. Size is ${buildImage.getHeight} * ${buildImage.getWidth}")
       }
     case lastResize(img,pos) => context.parent ! returningImage(img,pos)
 
