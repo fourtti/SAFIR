@@ -1,7 +1,10 @@
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
+
 import ImageByteConverter._
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
+import akka.cluster.{Cluster, MemberStatus}
+import akka.cluster.ClusterEvent.{ClusterDomainEvent, MemberExited, MemberRemoved, UnreachableMember}
 import akka.cluster.routing.{ClusterRouterPool, ClusterRouterPoolSettings}
 import akka.routing.RoundRobinPool
 import javax.imageio.ImageIO
@@ -11,7 +14,11 @@ object MainActor {
     case class initialSplit(byteImage: Array[Byte])
 }
 
-class MainActor(imageAmount: Int) extends Actor {
+class MainActor(imageAmount: Int) extends Actor with ActorLogging{
+
+
+  Cluster(context.system).subscribe(self, classOf[ClusterDomainEvent])
+
 
   import MainActor._
   import ResizingActor._
@@ -24,20 +31,27 @@ class MainActor(imageAmount: Int) extends Actor {
       maxInstancesPerNode = 1,  //how many actors are created per node in cluster
       allowLocalRoutees = false //allow actors to be created in the node the router lies in. In this case the Master node
     )
-  ).props(Props(new ResizingActor(4))), //the type of the actors, that are created
-    name = "master-router")
+  ).props(Props(new ResizingActor(4))))
   //var chunkCount = 0
   var counter = 0 //counts how many pictures have been returned from the router
   val returningImageArray = new Array[BufferedImage](imageAmount) // the images returned the router are stored here before they are constructed.
+  var eventRunning = false
+  var images = new Array[BufferedImage](imageAmount)
+
+  override def postStop(): Unit = {
+    Cluster(context.system).unsubscribe(self)
+    super.postStop()
+  }
 
   override def receive: Receive = {
     case initialSplit(byteImg) =>
+      eventRunning = true
       //converting image from ByteArray back to Buffered Image
       val img = convertToBufferedImage(byteImg)
 
       //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
-      val images = imageToChunks(img, 2, 2)
+      images = imageToChunks(img, 2, 2)
 
       for (i <- images.indices) {
         router ! startResizing(convertBufferToByteArray(images(i)),i)
@@ -51,8 +65,37 @@ class MainActor(imageAmount: Int) extends Actor {
       if (counter == imageAmount) { //if all images have been returned, construct image and save it to the project folder
         val buildImage = buildImageFromChunks(returningImageArray)
         ImageIO.write(buildImage,"jpg", new File("smallerImage.jpg"))
+        eventRunning = false
         println("The work is done")
       }
+    case MemberExited(m) => log.info(s"$m EXITED")
+    case MemberRemoved(m, previousState) =>
+      if(previousState == MemberStatus.Exiting) {
+        log.info(s"Member $m gracefully exited, REMOVED.")
+      } else {
+        if (eventRunning) {
+          //event found running, killing router with poisonpill.
+          router ! PoisonPill
+          // Creating new router
+          router = context.system.actorOf(ClusterRouterPool(
+            local = RoundRobinPool(2),  //type of router and the amount of actors created at the start
+            settings = ClusterRouterPoolSettings(
+              totalInstances = 15,      //maximum amount of actors created, not sure where it creates them though
+              maxInstancesPerNode = 1,  //how many actors are created per node in cluster
+              allowLocalRoutees = false //allow actors to be created in the node the router lies in. In this case the Master node
+            )
+          ).props(Props(new ResizingActor(4))))
+
+          //Have to sleep, so that router has time to get up
+          Thread.sleep(1000)
+
+          for (i <- images.indices) {
+            router ! startResizing(convertBufferToByteArray(images(i)),i)
+          }
+        }
+        log.info(s"$m downed after unreachable, REMOVED.")
+      }
+    case UnreachableMember(m) => log.info(s"$m is Unreachable")
 
   }
 
