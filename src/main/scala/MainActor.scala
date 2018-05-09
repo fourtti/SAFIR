@@ -112,6 +112,8 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
     val chunkHeight = img.getHeight() / rows
     val chunkArray = new Array[BufferedImage](chunkCount)
 
+    println(s"Width of each chunk: $chunkWidth, Height of Each Chunk: $chunkHeight, total amount of chunks(chunkCount)")
+
     //counter for inputing chunks to the array
     var counter = 0
     for (x <- 0 until rows) {
@@ -133,19 +135,37 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
     println("array size is: " + chunkArray.length)
     chunkArray
   }
+
+
   def buildImageFromChunks(arr: Array[BufferedImage],width:Int,height:Int): BufferedImage = {
     val h = arr(1).getHeight()
     val w = arr(1).getWidth()
-    val outputImg = new BufferedImage(width/2,height/2,BufferedImage.TYPE_INT_RGB)
+    val outputImg = new BufferedImage((width*w),(height*h),BufferedImage.TYPE_INT_RGB)
     var counter = 0
     for (x: Int <- 0 until height) {
       for (y: Int <- 0 until width) {
-        outputImg.getGraphics.drawImage(arr(counter), y*w, x*h, null)
+        outputImg.getGraphics.drawImage(arr(counter), y*arr(counter).getWidth(), x*arr(counter).getHeight(), null)
         counter+=1
       }
     }
     outputImg
   }
+
+  /*
+def buildImageFromChunks(arr: Array[BufferedImage],width:Int,height:Int): BufferedImage = {
+  val h = arr(0).getHeight()
+  val w = arr(0).getWidth()
+
+  val rows = new Array[BufferedImage](height)
+  for(y <- 0 until height){
+    for(x <- 0 until width){
+
+    }
+  }
+
+
+}
+  */
 
 
 }
