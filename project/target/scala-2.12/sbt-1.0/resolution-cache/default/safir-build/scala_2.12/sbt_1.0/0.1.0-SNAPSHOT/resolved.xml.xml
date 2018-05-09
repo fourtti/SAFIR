@@ -4,7 +4,7 @@
 		module="safir-build"
 		revision="0.1.0-SNAPSHOT"
 		status="integration"
-		publication="20180509093821"
+		publication="20180509142125"
 		e:sbtVersion="1.0" e:scalaVersion="2.12"
 	>
 		<description>

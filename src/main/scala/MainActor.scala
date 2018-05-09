@@ -92,9 +92,8 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
           //Have to sleep, so that router has time to get up
           Thread.sleep(1000)
 
-          for (i <- images.indices) {
-            router ! startResizing(convertBufferToByteArray(images(i)),i)
-          }
+          //counter = 0;
+
         }
         log.info(s"$m downed after unreachable, REMOVED.")
       }*/
