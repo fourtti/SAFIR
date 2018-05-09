@@ -1,5 +1,6 @@
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
+import java.time.LocalTime
 
 import ImageByteConverter._
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
@@ -14,7 +15,7 @@ object MainActor {
     case class initialSplit(byteImage: Array[Byte])
 }
 
-class MainActor(imageAmount: Int) extends Actor with ActorLogging{
+class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLogging{
 
 
   Cluster(context.system).subscribe(self, classOf[ClusterDomainEvent])
@@ -23,7 +24,8 @@ class MainActor(imageAmount: Int) extends Actor with ActorLogging{
   import MainActor._
   import ResizingActor._
 
-  println("xXx(SNIPORRZZZ)Lets see if this is before the errors(SNIPORRZZZ)xXx")
+
+
   var router:ActorRef = context.system.actorOf(ClusterRouterPool(
     local = RoundRobinPool(2),  //type of router and the amount of actors created at the start
     settings = ClusterRouterPoolSettings(
@@ -31,8 +33,10 @@ class MainActor(imageAmount: Int) extends Actor with ActorLogging{
       maxInstancesPerNode = 1,  //how many actors are created per node in cluster
       allowLocalRoutees = false //allow actors to be created in the node the router lies in. In this case the Master node
     )
-  ).props(Props(new ResizingActor(4))))
+  ).props(Props(new EndActor())))
   //var chunkCount = 0
+
+  val imageAmount = photoWidth*photoHeight
   var counter = 0 //counts how many pictures have been returned from the router
   val returningImageArray = new Array[BufferedImage](imageAmount) // the images returned the router are stored here before they are constructed.
   var eventRunning = false
@@ -44,6 +48,7 @@ class MainActor(imageAmount: Int) extends Actor with ActorLogging{
   }
 
   override def receive: Receive = {
+
     case initialSplit(byteImg) =>
       eventRunning = true
       //converting image from ByteArray back to Buffered Image
@@ -51,22 +56,22 @@ class MainActor(imageAmount: Int) extends Actor with ActorLogging{
 
       //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
-      images = imageToChunks(img, 2, 2)
+      images = imageToChunks(img, photoWidth, photoHeight)
 
       for (i <- images.indices) {
         router ! startResizing(convertBufferToByteArray(images(i)),i)
       }
 
     case returningImage(byteImg, pos) =>
-      println("HEY DUDE! I GOT SOMETHING!!!!")
       val img = convertToBufferedImage(byteImg)
       counter += 1
+      println(s"HEY DUDE! I GOT SOMETHING!!!! $counter/$imageAmount PICS ARRIVED. YEEHAA! pos of image was:" + pos)
       returningImageArray(pos) = img
       if (counter == imageAmount) { //if all images have been returned, construct image and save it to the project folder
-        val buildImage = buildImageFromChunks(returningImageArray)
+        val buildImage = buildImageFromChunks(returningImageArray,photoHeight,photoWidth)
         ImageIO.write(buildImage,"jpg", new File("smallerImage.jpg"))
         eventRunning = false
-        println("The work is done")
+        println("The work is done, time now: " + LocalTime.now())
       }
     case MemberExited(m) => log.info(s"$m EXITED")
     case MemberRemoved(m, previousState) =>
@@ -84,7 +89,7 @@ class MainActor(imageAmount: Int) extends Actor with ActorLogging{
               maxInstancesPerNode = 1,  //how many actors are created per node in cluster
               allowLocalRoutees = false //allow actors to be created in the node the router lies in. In this case the Master node
             )
-          ).props(Props(new ResizingActor(4))))
+          ).props(Props(new ResizingActor(10))))
 
           //Have to sleep, so that router has time to get up
           Thread.sleep(1000)
@@ -125,15 +130,16 @@ class MainActor(imageAmount: Int) extends Actor with ActorLogging{
         counter += 1
       }
     }
+    println("array size is: " + chunkArray.length)
     chunkArray
   }
-  def buildImageFromChunks(arr: Array[BufferedImage]): BufferedImage = {
+  def buildImageFromChunks(arr: Array[BufferedImage],width:Int,height:Int): BufferedImage = {
     val h = arr(1).getHeight()
     val w = arr(1).getWidth()
-    val outputImg = new BufferedImage(w*2,h*2,BufferedImage.TYPE_INT_RGB)
+    val outputImg = new BufferedImage(width/2,height/2,BufferedImage.TYPE_INT_RGB)
     var counter = 0
-    for (x: Int <- 0 until Math.sqrt(arr.length).toInt) {
-      for (y: Int <- 0 until Math.sqrt(arr.length).toInt) {
+    for (x: Int <- 0 until height) {
+      for (y: Int <- 0 until width) {
         outputImg.getGraphics.drawImage(arr(counter), y*w, x*h, null)
         counter+=1
       }

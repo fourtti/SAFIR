@@ -34,7 +34,7 @@ class ResizingActor(val imageAmount: Int) extends Actor {
       actorPosition = pos
 
       // if the image given to this function is right size, send to EndActor
-      if(img.getHeight() <= 256 || img.getWidth() <= 256) {
+      if(img.getHeight() <= 8 || img.getWidth() <= 8) {
         //println(s"Sent to Last Actor")
         val PartialImageActor = context.actorOf(Props[EndActor])
         PartialImageActor ! startResizing(convertBufferToByteArray(img), pos)

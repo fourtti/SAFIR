@@ -1,5 +1,6 @@
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
+import java.time.LocalTime
 
 import javax.imageio.ImageIO
 import akka.actor.{ActorSystem, Props}
@@ -34,17 +35,23 @@ object Main extends App{
       //import Mainactor companion object for initialsplit message type
       import MainActor._
 
-      //Creating a MainImageActor, which holds the router.
-      val mainActor =  system.actorOf(Props(new MainActor(4)),"MainImageActor")
-
-
       //getting photo from project folder
       println("Image Sent to main actor")
       val photo1 = ImageIO.read(new File("image.jpg"))
+      val photoWidth: Int = photo1.getWidth()/100
+      val photoHeight: Int = photo1.getHeight()/100
+      //val totalTasks = photoWidth*photoHeight
+
+      //Creating a MainImageActor, which holds the router.
+      val mainActor =  system.actorOf(Props(new MainActor(photoWidth,photoHeight)),"MainImageActor")
+
+
+
+
 
       //Wait a little time so that the router can create the routees
       Thread.sleep(1000)
-
+      println("Starting to work, time now: " + LocalTime.now())
 
       //sending image(converted to ByteArray) to mainActor for resizing
       mainActor ! initialSplit(convertBufferToByteArray(photo1))
