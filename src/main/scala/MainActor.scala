@@ -40,7 +40,7 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
   var counter = 0 //counts how many pictures have been returned from the router
   val returningImageArray = new Array[BufferedImage](imageAmount) // the images returned the router are stored here before they are constructed.
   var eventRunning = false
-  var images = new Array[BufferedImage](imageAmount)
+  //var images = new Array[BufferedImage](imageAmount)
 
   override def postStop(): Unit = {
     Cluster(context.system).unsubscribe(self)
@@ -56,11 +56,9 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
 
       //println(s"got inital image. Size: ${img.getHeight} * ${img.getWidth}")
 
-      images = imageToChunks(img, photoWidth, photoHeight)
+      //converts to smaller chunks and sends to rounter
+      imageToChunks(img, photoWidth, photoHeight,router)
 
-      for (i <- images.indices) {
-        router ! startResizing(convertBufferToByteArray(images(i)),i)
-      }
 
     case returningImage(byteImg, pos) =>
       val img = convertToBufferedImage(byteImg)
@@ -74,7 +72,7 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
         println("The work is done, time now: " + LocalTime.now())
       }
     case MemberExited(m) => log.info(s"$m EXITED")
-    case MemberRemoved(m, previousState) =>
+    /*case MemberRemoved(m, previousState) =>
       if(previousState == MemberStatus.Exiting) {
         log.info(s"Member $m gracefully exited, REMOVED.")
       } else {
@@ -99,41 +97,40 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
           }
         }
         log.info(s"$m downed after unreachable, REMOVED.")
-      }
+      }*/
     case UnreachableMember(m) => log.info(s"$m is Unreachable")
 
   }
 
-  def imageToChunks(img: BufferedImage, rows: Int, cols: Int): Array[BufferedImage] = {
+  def imageToChunks(img: BufferedImage, rows: Int, cols: Int,router: ActorRef){
     //total amount of chunks. Determines the size of the array returned
     val chunkCount = rows * cols
     //width and height of each chunk
     val chunkWidth = img.getWidth() / cols
     val chunkHeight = img.getHeight() / rows
-    val chunkArray = new Array[BufferedImage](chunkCount)
 
-    println(s"Width of each chunk: $chunkWidth, Height of Each Chunk: $chunkHeight, total amount of chunks(chunkCount)")
+    //println(s"Width of each chunk: $chunkWidth, Height of Each Chunk: $chunkHeight, total amount of chunks(chunkCount)")
 
-    //counter for inputing chunks to the array
+
+    //counter for storing image to array when it comes back
     var counter = 0
     for (x <- 0 until rows) {
       for (y <- 0 until cols) {
 
         // intitialize new imagechunks in array
-        chunkArray(counter) = new BufferedImage(chunkWidth, chunkHeight, BufferedImage.TYPE_INT_RGB)
+        val tempImg = new BufferedImage(chunkWidth, chunkHeight, BufferedImage.TYPE_INT_RGB)
 
 
         //draw the image to the imagechunk
-        val graphics = chunkArray(counter).createGraphics()
+        val graphics = tempImg.createGraphics()
         graphics.drawImage(img, 0, 0, chunkWidth, chunkHeight, chunkWidth * y, chunkHeight * x, chunkWidth * y + chunkWidth, chunkHeight * x + chunkHeight, null)
         graphics.dispose()
-
-        //adding to counter
+        router ! startResizing(convertBufferToByteArray(tempImg),counter)
         counter += 1
       }
     }
-    println("array size is: " + chunkArray.length)
-    chunkArray
+
+
   }
 
 
@@ -151,21 +148,6 @@ class MainActor(photoWidth: Int, photoHeight: Int) extends Actor with ActorLoggi
     outputImg
   }
 
-  /*
-def buildImageFromChunks(arr: Array[BufferedImage],width:Int,height:Int): BufferedImage = {
-  val h = arr(0).getHeight()
-  val w = arr(0).getWidth()
-
-  val rows = new Array[BufferedImage](height)
-  for(y <- 0 until height){
-    for(x <- 0 until width){
-
-    }
-  }
-
-
-}
-  */
 
 
 }
